@@ -2,12 +2,15 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/PathomKwpn/basic_golang_auth/configs"
 	"github.com/PathomKwpn/basic_golang_auth/models"
 	"github.com/PathomKwpn/basic_golang_auth/responses"
+	"github.com/PathomKwpn/basic_golang_auth/utils"
 	"github.com/labstack/echo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -43,17 +46,23 @@ func RegisterUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": "Password and ConfirmPassword should match"}})
 	}
 
-	newAccountUser := models.UserRegister{
+	// Hash the password
+	hashedPassword ,err := utils.HashPassword(userRegister.Password)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	newAccountUser := models.UserRegisterInsert{
 		Id:              primitive.NewObjectID(),
 		Email:           userRegister.Email,
-		Password:        userRegister.Password,
+		Password:        hashedPassword,
 	}
 
 	result, err := userLoginCollection.InsertOne(ctx, newAccountUser)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, responses.UserLoginResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusInternalServerError, responses.UserRegisterResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
 	}
-	return c.JSON(http.StatusCreated, responses.UserLoginResponse{Status: http.StatusCreated, Message: "success", Data: &echo.Map{"data": result}})
+	return c.JSON(http.StatusCreated, responses.UserRegisterResponse{Status: http.StatusCreated, Message: "success", Data: &echo.Map{"data": result}})
 }
 
 func LoginUser(c echo.Context) error {
@@ -71,6 +80,7 @@ func LoginUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": validationErr.Error()}})
 	}
 
+	fmt.Println("LoginUser -> userLogin: ", userLogin)
 
 	return c.JSON(http.StatusOK, responses.UserLoginResponse{Status: http.StatusOK, Message: "success", Data: &echo.Map{"data": "Login success"}})
 }

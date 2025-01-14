@@ -56,6 +56,8 @@ func RegisterUser(c echo.Context) error {
 		Id:              primitive.NewObjectID(),
 		Email:           userRegister.Email,
 		Password:        hashedPassword,
+		CreateDate:			 time.Now(),
+		UpdateDate:			 time.Now(),
 	}
 
 	result, err := userLoginCollection.InsertOne(ctx, newAccountUser)

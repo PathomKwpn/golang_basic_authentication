@@ -11,78 +11,148 @@ import (
 	"github.com/PathomKwpn/basic_golang_auth/models"
 	"github.com/PathomKwpn/basic_golang_auth/responses"
 	"github.com/PathomKwpn/basic_golang_auth/utils"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/labstack/echo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var userLoginCollection *mongo.Collection = configs.GetCollection(configs.DB, "user_accounts")
+var userAuthCollection *mongo.Collection = configs.GetCollection(configs.DB, "user_accounts")
 
 func RegisterUser(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	var userRegister models.UserRegister
 	defer cancel()
 
-	// Bind the request body to the userLogin struct
+	var userRegister models.UserRegister
+
+	// Bind และ Validate ในขั้นตอนเดียว
 	if err := c.Bind(&userRegister); err != nil {
-		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		fmt.Println("Error binding userRegister:", err)
+		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{
+			Status:  http.StatusBadRequest,
+			Message: "error",
+			Data:    &echo.Map{"data": err.Error()},
+		})
 	}
-	
-	//Validate the request body
-	if validationErr := validate.Struct(&userRegister); validationErr != nil {
-		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": validationErr.Error()}})
+	if err := validate.Struct(&userRegister); err != nil {
+		fmt.Println("Error validating userRegister:", err)
+		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{
+			Status:  http.StatusBadRequest,
+			Message: "error",
+			Data:    &echo.Map{"data": err.Error()},
+		})
 	}
 
-	// Check if email already exists
-	var existingUser models.UserRegister
-	err := userLoginCollection.FindOne(ctx, bson.M{"email": userRegister.Email}).Decode(&existingUser)
-	if err == nil {
-		return c.JSON(http.StatusInternalServerError, responses.UserLoginResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": "Email already exists"}})
+	// ตรวจสอบอีเมลซ้ำ
+	if err := userAuthCollection.FindOne(ctx, bson.M{"email": userRegister.Email}).Err(); err == nil {
+		fmt.Println("Email already exists")
+		return c.JSON(http.StatusConflict, responses.UserLoginResponse{
+			Status:  http.StatusConflict,
+			Message: "error",
+			Data:    &echo.Map{"data": "Email already exists"},
+		})
 	}
 
-	//Password and ConfirmPassword should match
+	// ตรวจสอบรหัสผ่านและยืนยันรหัสผ่าน
 	if userRegister.Password != userRegister.ConfirmPassword {
-		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": "Password and ConfirmPassword should match"}})
+		fmt.Fprintln(c.Response().Writer, "Password and ConfirmPassword should match")
+		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{
+			Status:  http.StatusBadRequest,
+			Message: "error",
+			Data:    &echo.Map{"data": "Password and ConfirmPassword should match"},
+		})
 	}
 
-	// Hash the password
-	hashedPassword ,err := utils.HashPassword(userRegister.Password)
+	// เข้ารหัสรหัสผ่าน
+	hashedPassword, err := utils.HashPassword(userRegister.Password)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Error hashing password:", err)
+		return c.JSON(http.StatusInternalServerError, responses.UserLoginResponse{
+			Status:  http.StatusInternalServerError,
+			Message: "error",
+			Data:    &echo.Map{"data": "Failed to hash password"},
+		})
 	}
 
+	// สร้างข้อมูลผู้ใช้ใหม่
 	newAccountUser := models.UserRegisterInsert{
-		Id:              primitive.NewObjectID(),
-		Email:           userRegister.Email,
-		Password:        hashedPassword,
-		CreateDate:			 time.Now(),
-		UpdateDate:			 time.Now(),
+		Id:         primitive.NewObjectID(),
+		Email:      userRegister.Email,
+		Password:   hashedPassword,
+		CreateDate: time.Now(),
+		UpdateDate: time.Now(),
 	}
 
-	result, err := userLoginCollection.InsertOne(ctx, newAccountUser)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, responses.UserRegisterResponse{Status: http.StatusInternalServerError, Message: "error", Data: &echo.Map{"data": err.Error()}})
+	// แทรกข้อมูลผู้ใช้ในฐานข้อมูล
+	if result, err := userAuthCollection.InsertOne(ctx, newAccountUser); err != nil {
+		fmt.Println("Error inserting user:", err)
+		return c.JSON(http.StatusInternalServerError, responses.UserRegisterResponse{
+			Status:  http.StatusInternalServerError,
+			Message: "error",
+			Data:    &echo.Map{"data": err.Error()},
+		})
+	} else {
+		return c.JSON(http.StatusCreated, responses.UserRegisterResponse{
+			Status:  http.StatusCreated,
+			Message: "success",
+			Data:    &echo.Map{"data": result},
+		})
 	}
-	return c.JSON(http.StatusCreated, responses.UserRegisterResponse{Status: http.StatusCreated, Message: "success", Data: &echo.Map{"data": result}})
+}
+
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
 
 func LoginUser(c echo.Context) error {
-	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	var userLogin models.UserLogin
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Bind the request body to the userLogin struct
+	var userLogin models.UserLogin
+
+	// Bind และ Validate ในขั้นตอนเดียว
 	if err := c.Bind(&userLogin); err != nil {
-		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": err.Error()}})
+		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{
+			Status:  http.StatusBadRequest,
+			Message: "error",
+			Data:    &echo.Map{"data": err.Error()},
+		})
+	}
+	if err := validate.Struct(&userLogin); err != nil {
+		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{
+			Status:  http.StatusBadRequest,
+			Message: "error",
+			Data:    &echo.Map{"data": err.Error()},
+		})
 	}
 
-	//Validate the request body
-	if validationErr := validate.Struct(&userLogin); validationErr != nil {
-		return c.JSON(http.StatusBadRequest, responses.UserLoginResponse{Status: http.StatusBadRequest, Message: "error", Data: &echo.Map{"data": validationErr.Error()}})
+	// ค้นหาผู้ใช้งานในฐานข้อมูล
+	var existingUser models.UserLogin
+	err := userAuthCollection.FindOne(ctx, bson.M{"email": userLogin.Email}).Decode(&existingUser)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, responses.UserLoginResponse{
+			Status:  http.StatusUnauthorized,
+			Message: "error",
+			Data:    &echo.Map{"data": "Invalid email or password"},
+		})
 	}
 
-	fmt.Println("LoginUser -> userLogin: ", userLogin)
+	// ตรวจสอบรหัสผ่าน
+	if !checkPasswordHash(userLogin.Password, existingUser.Password) {
+		return c.JSON(http.StatusUnauthorized, responses.UserLoginResponse{
+			Status:  http.StatusUnauthorized,
+			Message: "error",
+			Data:    &echo.Map{"data": "Invalid email or password"},
+		})
+	}
 
-	return c.JSON(http.StatusOK, responses.UserLoginResponse{Status: http.StatusOK, Message: "success", Data: &echo.Map{"data": "Login success"}})
+	// การเข้าสู่ระบบสำเร็จ
+	return c.JSON(http.StatusOK, responses.UserLoginResponse{
+		Status:  http.StatusOK,
+		Message: "success",
+		Data:    &echo.Map{"data": "Login success"},
+	})
 }

@@ -4,6 +4,7 @@ go 1.23
 
 require (
 	github.com/go-playground/validator/v10 v10.24.0
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo v3.3.10+incompatible
 	go.mongodb.org/mongo-driver v1.17.2

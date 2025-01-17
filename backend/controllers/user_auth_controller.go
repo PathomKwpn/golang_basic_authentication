@@ -11,7 +11,6 @@ import (
 	"github.com/PathomKwpn/basic_golang_auth/models"
 	"github.com/PathomKwpn/basic_golang_auth/responses"
 	"github.com/PathomKwpn/basic_golang_auth/utils"
-	"golang.org/x/crypto/bcrypt"
 
 	"github.com/labstack/echo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -26,7 +25,6 @@ func RegisterUser(c echo.Context) error {
 	defer cancel()
 
 	var userRegister models.UserRegister
-
 	// Bind และ Validate ในขั้นตอนเดียว
 	if err := c.Bind(&userRegister); err != nil {
 		fmt.Println("Error binding userRegister:", err)
@@ -102,11 +100,6 @@ func RegisterUser(c echo.Context) error {
 	}
 }
 
-func checkPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
-}
-
 func LoginUser(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -141,7 +134,7 @@ func LoginUser(c echo.Context) error {
 	}
 
 	// ตรวจสอบรหัสผ่าน
-	if !checkPasswordHash(userLogin.Password, existingUser.Password) {
+	if !utils.CheckPasswordHash(userLogin.Password, existingUser.Password) {
 		return c.JSON(http.StatusUnauthorized, responses.UserLoginResponse{
 			Status:  http.StatusUnauthorized,
 			Message: "error",
@@ -149,10 +142,24 @@ func LoginUser(c echo.Context) error {
 		})
 	}
 
-	// การเข้าสู่ระบบสำเร็จ
+	// สร้าง JWT Token
+	token, err := utils.GenerateJWT(existingUser.Email)
+	fmt.Println("tokennn : ", token)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, responses.UserLoginResponse{
+			Status:  http.StatusInternalServerError,
+			Message: "error",
+			Data:    &echo.Map{"data": "Failed to generate token"},
+		})
+	}
+
+	// การเข้าสู่ระบบสำเร็จ พร้อมส่ง Token กลับ
 	return c.JSON(http.StatusOK, responses.UserLoginResponse{
 		Status:  http.StatusOK,
 		Message: "success",
-		Data:    &echo.Map{"data": "Login success"},
+		Data:    &echo.Map{
+			"message": "Login success",
+			"token":   token, // ส่ง Token กลับไปให้ Frontend
+		},
 	})
 }

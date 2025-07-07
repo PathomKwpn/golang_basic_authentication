@@ -15,5 +15,5 @@ func main() {
     routes.UserRoute(e)
     routes.AuthRoute(e)
 
-    e.Logger.Fatal(e.Start(":6000"))
+    e.Logger.Fatal(e.Start(":8080"))
 }

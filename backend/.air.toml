@@ -1,13 +1,13 @@
 root = "."
 tmp_dir = "tmp"
- 
+
 [build]
   cmd = "go build -o ./tmp/main.exe ./cmd"
   bin = "tmp/main.exe"
- 
+
 [log]
   level = "debug"
- 
+
 [watch]
   include = ["cmd/**/*.go"]
   exclude = ["tmp", "vendor"]

@@ -1,28 +1,58 @@
-version: '3.9'
+version: '3.9'                                #ระบุเวอร์ชันของ Compose file format ที่จะใช้ ในที่นี้คือ 3.9
 
-services:
-  mongodb:
-    image: mongo:latest
-    container_name: mongo
+services:                                     #เริ่มต้นประกาศ service ต่างๆ ที่เราจะสร้างใน container
+  backend:      #ชื่อ service ที่เราจะสร้าง
+    build:  
+      context: .                          # ระบุ context ที่จะใช้ในการสร้าง image (โฟลเดอร์ปัจจุบัน)
+      dockerfile: Dockerfile              # ระบุ Dockerfile ที่จะใช้สร้าง image
+
+    container_name: go-backend            # ชื่อ container ที่เราจะสร้าง
     ports:
-      - "27017:27017"
+      - "8080:8080"                       # เปิดพอร์ต 8080 ของเครื่อง host (เครื่องที่รัน Docker) ให้เชื่อมต่อกับพอร์ต 8080 ภายใน container --> ทำให้เราสามารถเข้าถึงแอป backend ผ่าน localhost:8080
     volumes:
-      - mongo-data:/data/db
+      - .:/app                            # แมป (mount) โฟลเดอร์ปัจจุบันของเครื่อง host ไปยัง /app ใน container   ทำให้ไฟล์โค้ดของเราทั้งหมดพร้อมใช้งานใน container แบบ real-time (สะดวกสำหรับการพัฒนา)                       
+      - ./.env:/app/.env                  # แมปไฟล์ .env ที่เครื่อง host เข้าไปที่ /app/.env ใน container เพื่อให้แอปรับค่า environment variables
+    env_file:
+      - .env                              # กำหนดไฟล์ .env สำหรับตั้งค่าตัวแปร environment (เหมือนการโหลดตัวแปรจากไฟล์นี้)
+    working_dir: /app                     # กำหนด working directory ภายใน container เป็น /app ซึ่งเป็นที่ที่โค้ดของเราจะทำงาน
+    command: ["air", "-c", ".air.toml"]   # สั่งให้รันคำสั่ง air -c .air.toml ตอน container เริ่มทำงาน
+    environment:
+      - MONGODB_URI=mongodb://root:examplepassword@mongodb:27017/?authSource=admin # ตั้งค่าตัวแปร environment ชื่อ MONGODB_URI เพื่อให้แอป backend รู้ว่าจะเชื่อมต่อกับ MongoDB ที่ไหน mongodb ใน URI คือชื่อ service ของ MongoDB ใน compose (Docker DNS จะช่วย resolve ให้เอง)
+    depends_on:
+      - mongodb                           # บอกว่า backend service ต้องรันหลังจาก mongodb service พร้อมทำงานแล้ว (เพื่อให้เชื่อมต่อกับ DB ได้)
+  mongodb:
+    image: mongo:latest                   # ใช้ official image ของ MongoDB เวอร์ชันล่าสุดจาก Docker Hub
+    container_name: mongo                 # กำหนดชื่อ container ว่า mongo
+    ports:
+      - "27017:27017"                     # เปิดพอร์ต 27017 (default ของ MongoDB) จาก container ออกมาให้ host สามารถเข้าถึงได้
+    volumes:
+      - mongo-data:/data/db               # แมป volume ชื่อ mongo-data ไปยัง /data/db ใน container เพื่อเก็บข้อมูล MongoDB อย่างถาวร (แม้ container จะหยุดทำงานหรือถูกลบ)
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: examplepassword
+      MONGO_INITDB_ROOT_PASSWORD: examplepassword   # ตั้งชื่อผู้ใช้ root และรหัสผ่านสำหรับ MongoDB
+    restart: unless-stopped               # กำหนดให้ container นี้จะ restart อัตโนมัติถ้ามันหยุดทำงาน ยกเว้นว่าเราจะหยุดมันด้วยมือ 
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"] # คำสั่งตรวจสอบสุขภาพของ MongoDB โดยใช้คำสั่ง mongo เพื่อ ping database
+      interval: 10s                       # ตรวจสอบทุก 10 วินาที
+      timeout: 5s                         # ถ้าไม่ตอบกลับภายใน 5 วินาที จะถือว่า health check ล้มเหลว
+      retries: 5                          # ถ้าล้มเหลว 5 ครั้งติดต่อกัน จะถือว่า service นี้ไม่ healthy 
 
-  mongo-express:
-    depends_on:
+  mongo-express:                          # ชื่อ service สำหรับเว็บอินเทอร์เฟซ mongo-express ใช้สำหรับจัดการ MongoDB ผ่านเว็บ UI                   
+    depends_on:                           # กำหนดให้ mongo-express ต้องรันหลังจาก mongodb พร้อมทำงานแล้ว                    
       - mongodb
-    image: mongo-express:latest
-    container_name: mongo-express
+    image: mongo-express:latest           # ใช้ official image ของ mongo-express เวอร์ชันล่าสุดจาก Docker Hub
+    container_name: mongo-express         # กำหนดชื่อ container ว่า mongo-express
     ports:
-      - "8081:8081"
+      - "8081:8081"                       # เปิดพอร์ต 8081 ของเครื่อง host ให้เชื่อมต่อกับพอร์ต 8081 ภายใน container เพื่อให้เราสามารถเข้าถึง mongo-express ผ่าน localhost:8081                  
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: examplepassword
-      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root                   # ตั้งชื่อผู้ใช้ admin สำหรับ mongo-express ให้ตรงกับที่เราตั้งใน MongoDB
+      ME_CONFIG_MONGODB_ADMINPASSWORD: examplepassword        # ตั้งรหัสผ่าน admin สำหรับ mongo-express ให้ตรงกับที่เราตั้งใน MongoDB
+      ME_CONFIG_MONGODB_SERVER: mongodb                       # กำหนดให้ mongo-express เชื่อมต่อกับ MongoDB ที่ชื่อ service ว่า mongodb               
+      ME_CONFIG_BASICAUTH_USERNAME: admin                     # ตั้งชื่อผู้ใช้สำหรับการเข้าสู่ระบบ mongo-express
+      ME_CONFIG_BASICAUTH_PASSWORD: mysecurepassword          # ตั้งรหัสผ่านสำหรับการเข้าสู่ระบบ mongo-express  
+      ME_CONFIG_MONGODB_URL: ${MONGODB_URI}                   # ใช้ตัวแปร MONGODB_URI ที่เราตั้งไว้ใน backend service เพื่อเชื่อมต่อกับ MongoDB
 
-volumes:
-  mongo-data:
+
+volumes:                                                      
+  mongo-data:                       # ประกาศ volume ชื่อ mongo-data เพื่อเก็บข้อมูล MongoDB อย่างถาวร
+

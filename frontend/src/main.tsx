@@ -1,16 +1,11 @@
-import { StrictMode } from "react";
-import "./index.css";
-import MyApp from "./App.tsx";
-import "@radix-ui/themes/styles.css";
-
-import { Theme } from "@radix-ui/themes";
+// src/main.tsx
+import React from "react";
 import ReactDOM from "react-dom/client";
+import "./index.css"; // ✅ ต้อง import ก่อน render
+import App from "./App.tsx"; // หรือ MyApp ถ้าคุณใช้ชื่อนี้
 
-const root = ReactDOM.createRoot(document.getElementById("root")!);
-root.render(
-  <StrictMode>
-    <Theme>
-      <MyApp />
-    </Theme>
-  </StrictMode>
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
 );

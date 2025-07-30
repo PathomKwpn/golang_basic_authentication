@@ -3,12 +3,14 @@ import React from "react";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import Devider from "@/ui/Devider";
+import { useNavigate } from "react-router-dom";
 
 interface SignInProps {
   setThisPageState: React.Dispatch<React.SetStateAction<"signup" | "signin">>;
 }
 
 const Signin: React.FC<SignInProps> = ({ setThisPageState }) => {
+  const nevigate = useNavigate();
   return (
     <form className="w-full min-h-screen p-8 shadow-md flex flex-col items-center justify-center">
       <div className="w-full max-w-[340px]">
@@ -42,6 +44,11 @@ const Signin: React.FC<SignInProps> = ({ setThisPageState }) => {
         <button
           type="submit"
           className="btn btn-primary w-full  py-2 rounded transition-colors"
+          onClick={(e) => {
+            e.preventDefault();
+            // Handle sign-in logic here
+            nevigate("/chatai");
+          }}
         >
           Sign in
         </button>

@@ -15,6 +15,7 @@ const ChatAiInput: React.FC<ChatAiInputProps> = ({
 }) => {
   const [message, setMessage] = React.useState("");
   const inputRef = React.useRef<HTMLDivElement>(null);
+  const GEMINI_API = import.meta.env.VITE_GEMINI_API;
   const handleSend = async (e: any) => {
     const updateHistory = (text: string) => {
       setChatHistory((prev) => [
@@ -42,18 +43,13 @@ const ChatAiInput: React.FC<ChatAiInputProps> = ({
         body: JSON.stringify({ contents: history }),
       };
       try {
-        const response = await fetch(
-          "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBSTMqeOhfMTj8vwtq20PRoHMiYl61wUoM",
-          options
-        );
+        const response = await fetch(GEMINI_API, options);
         const data = await response.json();
-        console.log("Response from Gemini:", data);
         const apiResponseText =
           data.candidates[0].content.parts[0].text.replace(
             /\*\*(.?)\*\*/g,
             "$1"
           );
-        console.log("apiResponseText", apiResponseText);
 
         updateHistory(apiResponseText);
       } catch (error) {
@@ -63,7 +59,6 @@ const ChatAiInput: React.FC<ChatAiInputProps> = ({
       console.log("ERRRRR", error);
     }
   };
-  console.log("chatHistory", chatHistory);
 
   return (
     <div className="card bg-base-100 shadow-sm rounded-lg w-[90%]">

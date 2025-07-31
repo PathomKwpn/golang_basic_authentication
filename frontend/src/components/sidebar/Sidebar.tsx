@@ -16,7 +16,6 @@ const Navbar = () => {
         </span>
       ),
     },
-    { label: "About", path: "/about", icon: <span>ℹ️</span> },
     {
       label: "ChatAI",
       path: "/chatai",

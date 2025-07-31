@@ -1,4 +1,7 @@
 import React from "react";
+
+import { GoDependabot } from "react-icons/go";
+
 import ChatAiInput from "@/modules/Chat/ChatAI/components/Input";
 import History from "@/modules/Chat/ChatAI/components/History";
 
@@ -7,69 +10,71 @@ const ChatAI = () => {
     { role: string; text: string }[]
   >([]);
   const chatBodyRef = React.useRef<HTMLDivElement | null>(null);
-  // const mockMessages = [
-  //   {
-  //     role: "user",
-  //     text: "Hi there! I'm trying to fetch data from an API using React. Could you help me with that?",
-  //   },
-  //   {
-  //     role: "assistant",
-  //     text: "Sure! You can use the `useEffect` hook along with `fetch` or `axios`. Would you like an example using `axios`?",
-  //   },
-  //   {
-  //     role: "user",
-  //     text: "Yes, axios would be great!",
-  //   },
-  //   {
-  //     role: "assistant",
-  //     text: `Alright, here's a basic example:\n\n\`\`\`jsx\nimport { useEffect, useState } from 'react'\nimport axios from 'axios'\n\nconst MyComponent = () => {\n  const [data, setData] = useState([])\n\n  useEffect(() => {\n    axios.get('https://api.example.com/data')\n      .then(res => setData(res.data))\n      .catch(err => console.error(err))\n  }, [])\n\n  return <div>{JSON.stringify(data)}</div>\n}\n\`\`\`\n\nLet me know if you want to add loading states or error handling.`,
-  //   },
-  //   {
-  //     role: "user",
-  //     text: "Thanks! And how can I show a loading spinner while the data is being fetched?",
-  //   },
-  //   {
-  //     role: "assistant",
-  //     text: `Great question! You can add a \`loading\` state like this:\n\n\`\`\`jsx\nconst [loading, setLoading] = useState(true)\n\nuseEffect(() => {\n  axios.get('https://api.example.com/data')\n    .then(res => {\n      setData(res.data)\n      setLoading(false)\n    })\n    .catch(err => {\n      console.error(err)\n      setLoading(false)\n    })\n}, [])\n\nif (loading) return <Spinner />\n\`\`\``,
-  //   },
-  //   {
-  //     role: "user",
-  //     text: "Awesome. Last question – how can I cancel a request if the component unmounts?",
-  //   },
-  //   {
-  //     role: "assistant",
-  //     text: `You can use an AbortController with axios like this:\n\n\`\`\`jsx\nuseEffect(() => {\n  const controller = new AbortController()\n\n  axios.get('https://api.example.com/data', {\n    signal: controller.signal\n  })\n  .then(res => setData(res.data))\n  .catch(err => {\n    if (axios.isCancel(err)) {\n      console.log('Request canceled', err.message)\n    } else {\n      console.error(err)\n    }\n  })\n\n  return () => controller.abort()\n}, [])\n\`\`\`\n\nThis helps avoid memory leaks. Let me know if you need help with React Query or SWR too!`,
-  //   },
-  // ];
   React.useEffect(() => {
     chatBodyRef.current?.scrollTo({
       top: chatBodyRef.current?.scrollHeight,
       behavior: "smooth",
     });
   }, [chatHistory]);
+
   return (
     <div className="flex flex-row h-full">
       <div
         ref={chatBodyRef}
         className="flex-3/2 relative w-full h-full overflow-y-auto"
       >
-        <div className="space-y-3 px-4 py-2 pb-10">
-          {chatHistory.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex ${
-                msg.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+        <div
+          className={`space-y-3 px-4 py-2 pb-10 ${
+            chatHistory.length > 0
+              ? "min-h-[90%] "
+              : "flex items-end min-h-[40%] justify-center"
+          }`}
+        >
+          {chatHistory.length > 0 ? (
+            chatHistory.map((msg, index) => (
               <div
-                className={`px-4 py-2 rounded-xl whitespace-pre-wrap max-w-[75%] text-sm ${
-                  msg.role === "user" ? "bg-primary text-white" : "bg-base-100"
+                key={index}
+                className={`flex ${
+                  msg.role === "user"
+                    ? "justify-end items-center"
+                    : "justify-start items-center"
                 }`}
               >
-                {msg.text}
+                {msg.role === "user" && (
+                  <time className="text-xs opacity-50">12:45</time>
+                )}
+                <div className="">
+                  {msg.role !== "user" && (
+                    <div className="avatar avatar-placeholder">
+                      <div className="bg-base-100 ring text-neutral-content w-8 rounded-full">
+                        <span className="badge badge-sm">
+                          <GoDependabot size={16} className="" />
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div
+                  className={`px-4 py-2 rounded-xl whitespace-pre-wrap max-w-[75%] text-sm ms-1 ${
+                    msg.role === "user"
+                      ? "bg-primary text-white"
+                      : msg.text === "Thinking..."
+                      ? "text-gray-400"
+                      : "bg-base-100"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+                {msg.role !== "user" && (
+                  <time className="text-xs opacity-50">12:45</time>
+                )}
               </div>
+            ))
+          ) : (
+            <div className="flex justify-center font-semibold text-[24px]">
+              What's on the agenda today?
             </div>
-          ))}
+          )}
         </div>
 
         <div className="sticky bottom-4 z-10 w-full flex justify-center bg-transparent">
@@ -80,7 +85,7 @@ const ChatAI = () => {
         </div>
       </div>
       <div className="flex-1">
-        <History />
+        <History setChatHistory={setChatHistory} />
       </div>
     </div>
   );

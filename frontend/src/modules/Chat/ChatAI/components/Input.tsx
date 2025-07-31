@@ -1,12 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import axios from "axios";
 
 import { FaArrowUpLong } from "react-icons/fa6";
 import { FiPlus } from "react-icons/fi";
 
 interface ChatAiInputProps {
   chatHistory: { role: string; text: string }[];
-  setChatHistory: React.Dispatch<React.SetStateAction<any[]>>;
+  setChatHistory: React.Dispatch<
+    React.SetStateAction<{ role: string; text: string }[]>
+  >;
 }
 
 const ChatAiInput: React.FC<ChatAiInputProps> = ({
@@ -17,21 +19,32 @@ const ChatAiInput: React.FC<ChatAiInputProps> = ({
   const inputRef = React.useRef<HTMLDivElement>(null);
   const GEMINI_API = import.meta.env.VITE_GEMINI_API;
   const handleSend = async (e: any) => {
+    setMessage("Thinking...");
     const updateHistory = (text: string) => {
       setChatHistory((prev) => [
-        ...prev.filter((msg) => msg.text !== ""),
+        ...prev.filter((msg) => msg.text !== "Thinking..."),
         { role: "model", text: text },
       ]);
     };
+    setTimeout(
+      () =>
+        setChatHistory((history) => [
+          ...history,
+          { role: "model", text: "Thinking..." },
+        ]),
+      600
+    );
     e.preventDefault();
     const userMessage = inputRef.current?.textContent.trim();
     if (!message.trim()) return;
     if (inputRef.current) {
       inputRef.current.textContent = "";
     }
-    const updatedChat = [...chatHistory, { role: "user", text: userMessage }];
+    const updatedChat = [
+      ...chatHistory,
+      { role: "user", text: userMessage ?? "" },
+    ];
     setChatHistory(updatedChat);
-    setMessage("");
     try {
       const history = updatedChat.map(({ role, text }) => ({
         role,
@@ -61,7 +74,7 @@ const ChatAiInput: React.FC<ChatAiInputProps> = ({
   };
 
   return (
-    <div className="card bg-base-100 shadow-sm rounded-lg w-[90%]">
+    <div className="card bg-base-100 shadow-sm rounded-[20px] w-[90%]">
       <div className="card-body p-2 w-full rounded-lg">
         <div
           ref={inputRef}
@@ -71,6 +84,13 @@ const ChatAiInput: React.FC<ChatAiInputProps> = ({
           role="textbox"
           aria-multiline="true"
           onInput={(e) => setMessage(e.currentTarget.textContent || "")}
+          onKeyDown={(e) => {
+            console.log(e);
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend(e);
+            }
+          }}
         >
           {/* <p className="text-[#afafaf]">Ask anything</p> */}
         </div>
@@ -79,8 +99,9 @@ const ChatAiInput: React.FC<ChatAiInputProps> = ({
             <FiPlus size={20} className="text-gray-500" />
           </button>
           <button
-            className="btn w-7 h-7 p-2 rounded-full btn-sm"
+            className="btn bg-base-100 border-none w-7 h-7 p-2 rounded-full btn-sm"
             onClick={handleSend}
+            disabled={!message.trim()}
           >
             <FaArrowUpLong size={10} />
           </button>

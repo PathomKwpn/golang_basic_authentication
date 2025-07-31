@@ -5,11 +5,23 @@ import { GoDependabot } from "react-icons/go";
 import ChatAiInput from "@/modules/Chat/ChatAI/components/Input";
 import History from "@/modules/Chat/ChatAI/components/History";
 
+const prompts = [
+  "What's on the agenda today?",
+  "What do you plan to accomplish?",
+  "Got anything exciting for today?",
+  "What's your focus for now?",
+  "What’s happening today?",
+  "What are you up to today?",
+];
+
 const ChatAI = () => {
   const [chatHistory, setChatHistory] = React.useState<
     { role: string; text: string }[]
   >([]);
   const chatBodyRef = React.useRef<HTMLDivElement | null>(null);
+  const randomIndex = Math.floor(Math.random() * prompts.length);
+  const prompt = prompts[randomIndex];
+
   React.useEffect(() => {
     chatBodyRef.current?.scrollTo({
       top: chatBodyRef.current?.scrollHeight,
@@ -72,7 +84,7 @@ const ChatAI = () => {
             ))
           ) : (
             <div className="flex justify-center font-semibold text-[24px]">
-              What's on the agenda today?
+              {prompt}
             </div>
           )}
         </div>

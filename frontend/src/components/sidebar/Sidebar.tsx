@@ -1,8 +1,10 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { RiContractLeftLine, RiContractRightLine } from "react-icons/ri";
-import { FaHome } from "react-icons/fa";
-import { IoMdChatboxes } from "react-icons/io";
+import { GoHome } from "react-icons/go";
+
+import { IoChatboxOutline } from "react-icons/io5";
+
 const Navbar = () => {
   const { pathname } = useLocation();
   const [collapsed, setCollapsed] = React.useState<boolean>(false);
@@ -12,7 +14,7 @@ const Navbar = () => {
       path: "/",
       icon: (
         <span>
-          <FaHome size={18} />
+          <GoHome size={18} />
         </span>
       ),
     },
@@ -21,7 +23,7 @@ const Navbar = () => {
       path: "/chatai",
       icon: (
         <span>
-          <IoMdChatboxes size={18} />
+          <IoChatboxOutline size={18} />
         </span>
       ),
     },

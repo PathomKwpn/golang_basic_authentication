@@ -4,6 +4,7 @@ import { GoDependabot } from "react-icons/go";
 
 import ChatAiInput from "@/modules/Chat/ChatAI/components/Input";
 import History from "@/modules/Chat/ChatAI/components/History";
+import MarkdownViewer from "@/ui/MarkdownViewer";
 
 const prompts = [
   "What's on the agenda today?",
@@ -17,6 +18,9 @@ const prompts = [
 const ChatAI = () => {
   const [chatHistory, setChatHistory] = React.useState<
     { role: string; text: string }[]
+  >([]);
+  const [historyStore, setHistoryStore] = React.useState<
+    { label: string; data: { role: string; text: string }[] }[]
   >([]);
   const chatBodyRef = React.useRef<HTMLDivElement | null>(null);
   const randomIndex = Math.floor(Math.random() * prompts.length);
@@ -75,7 +79,9 @@ const ChatAI = () => {
                       : "bg-base-100"
                   }`}
                 >
-                  {msg.text}
+                  {/* {msg.text} */}
+                  <MarkdownViewer content={msg.text} />
+                  {/* <TypingMessage text={msg.text} /> */}
                 </div>
                 {msg.role !== "user" && (
                   <time className="text-xs opacity-50">12:45</time>
@@ -88,7 +94,7 @@ const ChatAI = () => {
             </div>
           )}
         </div>
-
+        {/* <TypingMessage text="Hello Hello..." /> */}
         <div className="sticky bottom-4 z-10 w-full flex justify-center bg-transparent">
           <ChatAiInput
             chatHistory={chatHistory}
@@ -97,7 +103,12 @@ const ChatAI = () => {
         </div>
       </div>
       <div className="flex-1">
-        <History setChatHistory={setChatHistory} />
+        <History
+          chatHistory={chatHistory}
+          setChatHistory={setChatHistory}
+          historyStore={historyStore}
+          setHistoryStore={setHistoryStore}
+        />
       </div>
     </div>
   );

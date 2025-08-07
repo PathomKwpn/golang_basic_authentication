@@ -8,12 +8,24 @@ import { RiContractRightLine } from "react-icons/ri";
 import Devider from "@/ui/Devider";
 
 interface HistoryProps {
+  chatHistory: { role: string; text: string }[];
+  historyStore: { label: string; data: { role: string; text: string }[] }[];
   setChatHistory: React.Dispatch<
     React.SetStateAction<{ role: string; text: string }[]>
   >;
+  setHistoryStore: React.Dispatch<
+    React.SetStateAction<
+      { label: string; data: { role: string; text: string }[] }[]
+    >
+  >;
 }
 
-const History: React.FC<HistoryProps> = ({ setChatHistory }) => {
+const History: React.FC<HistoryProps> = ({
+  historyStore,
+  chatHistory,
+  setChatHistory,
+  setHistoryStore,
+}) => {
   const [hideMenu, setHideMenu] = React.useState(false);
   const menuItems = [
     {
@@ -72,6 +84,13 @@ const History: React.FC<HistoryProps> = ({ setChatHistory }) => {
           onClick={() => {
             if (item.label === "New Chat") {
               // Handle new chat action
+              setHistoryStore((prev) => [
+                ...prev,
+                {
+                  label: chatHistory[0]?.text || "New Chat",
+                  data: chatHistory,
+                },
+              ]);
               setChatHistory([]);
             } else if (item.label === "Search Chat") {
               // Handle search chat action
@@ -100,6 +119,16 @@ const History: React.FC<HistoryProps> = ({ setChatHistory }) => {
         >
           {!hideMenu && <span className="ml-2">Chat 2</span>}
         </div>
+        {historyStore.map((item, index) => (
+          <div
+            key={index}
+            className={`flex items-center p-2 hover:bg-base-200 rounded-lg text-[12px] ${
+              hideMenu ? "justify-center" : "justify-between"
+            }`}
+          >
+            {!hideMenu && <span className="ml-2">{item.label}</span>}
+          </div>
+        ))}
       </div>
     </div>
   );
